@@ -1,0 +1,50 @@
+{
+  "UI/UX": {
+    "evaluation_criteria": [
+      "Mentions user research, personas, and target audience needs.",
+      "Discusses hierarchy, accessibility (WCAG), and responsive layout.",
+      "Focuses on usability, user flows, and interactive consistency."
+    ],
+    "keywords": ["WCAG", "wireframe", "usability", "persona", "user research", "hierarchy", "accessibility"]
+  },
+  "Flutter": {
+    "evaluation_criteria": [
+      "Understands stateless vs stateful widgets and rendering cycles.",
+      "Explains state management solutions like Provider, Riverpod, or Bloc.",
+      "Discusses asynchronous operations, futures, and streams."
+    ],
+    "keywords": ["StatelessWidget", "StatefulWidget", "setState", "Provider", "Bloc", "Riverpod", "Wasm", "widget tree"]
+  },
+  "Full Stack": {
+    "evaluation_criteria": [
+      "Explains differences between database engines (relational vs non-relational).",
+      "Understands MVC design patterns, routing, and database indexes.",
+      "Mentions security best practices like authentication and password hashing."
+    ],
+    "keywords": ["SQL", "NoSQL", "ACID", "REST", "indexes", "JWT", "Express", "MVC", "ORM"]
+  },
+  "Python": {
+    "evaluation_criteria": [
+      "Understands Python-specific syntax constructs like list comprehensions.",
+      "Explains decorators, generators, or context managers correctly.",
+      "Mentions memory management or performance differences."
+    ],
+    "keywords": ["comprehension", "decorator", "generator", "yield", "dunder", "GIL", "PEP8"]
+  },
+  "Digital Marketing": {
+    "evaluation_criteria": [
+      "Understands Search Engine Optimization (SEO) strategies.",
+      "Discusses analytics, conversion rates, and performance marketing indicators.",
+      "Identifies on-page and off-page marketing tactics."
+    ],
+    "keywords": ["SEO", "backlinks", "CTR", "CPC", "conversion rate", "analytics", "campaign"]
+  },
+  "HR": {
+    "evaluation_criteria": [
+      "Displays strong verbal communication, confidence, and structures responses.",
+      "Uses the STAR method (Situation, Task, Action, Result) for conflict resolution questions.",
+      "Shows alignment with company culture and values."
+    ],
+    "keywords": ["STAR method", "collaboration", "resolution", "communication", "leadership", "growth"]
+  }
+}
