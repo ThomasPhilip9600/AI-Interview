@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS answer_evaluations (
+  id                            CHAR(36)    PRIMARY KEY DEFAULT (UUID()),
+  answer_id                     CHAR(36)    NOT NULL UNIQUE,
+  overall_score                 INT         NOT NULL,
+  relevance_score               INT         NOT NULL,
+  clarity_score                 INT         NOT NULL,
+  knowledge_score               INT         NOT NULL,
+  example_score                 INT         NOT NULL,
+  communication_score           INT         NOT NULL,
+  business_understanding_score  INT         NOT NULL,
+  impact_score                  INT         NOT NULL,
+  what_went_well                JSON,
+  what_needs_improvement        JSON,
+  missing_keywords              JSON,
+  used_keywords                 JSON,
+  short_feedback                TEXT        NOT NULL,
+  detailed_feedback             TEXT        NOT NULL,
+  refined_answer                TEXT        NOT NULL,
+  hire_readiness                ENUM('NOT_READY','NEEDS_IMPROVEMENT','GOOD','STRONG','EXCELLENT') NOT NULL,
+  raw_ai_response               JSON,
+  created_at                    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (answer_id) REFERENCES interview_answers(id) ON DELETE CASCADE
+);

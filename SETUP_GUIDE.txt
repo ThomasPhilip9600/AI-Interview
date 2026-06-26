@@ -1,0 +1,49 @@
+# Portfolix AI Interview Module - Docker Setup Guide
+
+This project is now fully containerized! You do not need to install Node.js, MySQL, or MinIO manually on your computer. Docker will handle everything.
+
+## Prerequisites
+
+1. Install **Docker Desktop**: [Download here](https://www.docker.com/products/docker-desktop/)
+2. Open Docker Desktop and ensure it is running (the engine is started).
+
+---
+
+## 1. Start the Application
+
+1. Open your terminal in the root `Interview` folder.
+2. Run the following command:
+   ```bash
+   docker compose up -d --build
+   ```
+
+*(This command will download the necessary images for MySQL and MinIO, build the frontend and backend images, run the database migrations automatically, and start all services in the background.)*
+
+---
+
+## 2. Verify It's Working
+
+Once all containers show as "Started":
+
+- **Frontend App**: Open your browser and go to `http://localhost:5173/ai-interview/` (or simply `http://localhost:5173`)
+- **Backend API**: The API is running on `http://localhost:5000`
+- **MinIO Console**: Go to `http://localhost:9001` (Login: `minioadmin` / `minioadmin`)
+
+**That's it!** You can now interact with the app. Try recording an interview to ensure it uploads properly to MinIO and saves the record in MySQL.
+
+---
+
+## 3. Useful Commands
+
+- **View Logs**: To see what the backend or frontend is doing:
+  ```bash
+  docker compose logs -f
+  ```
+- **Stop Everything**: To stop the containers without losing your database or videos:
+  ```bash
+  docker compose stop
+  ```
+- **Completely Reset**: To tear down the containers AND delete the database and videos (start fresh):
+  ```bash
+  docker compose down -v
+  ```

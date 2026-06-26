@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS interview_answers (
+  id                    CHAR(36)    PRIMARY KEY DEFAULT (UUID()),
+  attempt_id            CHAR(36)    NOT NULL,
+  question_id           CHAR(36)    NOT NULL,
+  retake_count          INT         NOT NULL DEFAULT 0,
+  video_url             VARCHAR(500),
+  audio_url             VARCHAR(500),
+  duration_sec          INT,
+  transcript            TEXT,
+  transcript_edited_by  CHAR(36),
+  processing_status     ENUM('UPLOADED','TRANSCRIBING','TRANSCRIBED','EVALUATING','EVALUATED','FAILED') NOT NULL DEFAULT 'UPLOADED',
+  processing_error      TEXT,
+  is_deleted            BOOLEAN     NOT NULL DEFAULT FALSE,
+  deleted_at            DATETIME,
+  purge_at              DATETIME,
+  created_at            DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (attempt_id) REFERENCES interview_attempts(id) ON DELETE CASCADE,
+  FOREIGN KEY (question_id) REFERENCES interview_questions(id),
+  INDEX idx_answer_deleted_purge (is_deleted, purge_at)
+);
