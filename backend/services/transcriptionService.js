@@ -59,7 +59,7 @@ async function transcribeAudio(objectKey, durationSec) {
     return { success: true, text: transcription.text };
   } catch (error) {
     console.error("[Transcription] Failed:", error);
-    return { success: false, reason: "Transcription failed due to an error", text: "" };
+    return { success: false, reason: `Transcription failed due to an error: ${error.message || error}`, text: "" };
   }
 }
 

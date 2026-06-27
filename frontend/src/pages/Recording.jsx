@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import useMediaRecorder from '../hooks/useMediaRecorder';
 import api from '../services/api';
 import usePostureDetector from '../hooks/usePostureDetector';
+import useSpeechRecognition from '../hooks/useSpeechRecognition';
 import { Square, AlertTriangle } from 'lucide-react';
 
 export default function Recording() {
@@ -12,8 +13,10 @@ export default function Recording() {
   
   const { mediaStream, startCamera, stopCamera, startRecording, stopRecording, isRecording, recordedBlob, hasSpoken } = useMediaRecorder();
   const postureState = usePostureDetector(videoRef);
+  const { transcript } = useSpeechRecognition(isRecording);
   
   const [timeLeft, setTimeLeft] = useState(60); 
+  const [initialTimeLimit, setInitialTimeLimit] = useState(60);
   const [uploading, setUploading] = useState(false);
   const [questionId, setQuestionId] = useState(null);
   const [totalQuestions, setTotalQuestions] = useState(1);
@@ -31,7 +34,9 @@ export default function Recording() {
         setTotalQuestions(questions.length);
         if (questions && questions.length > qIndex) {
           setQuestionId(questions[qIndex].id);
-          setTimeLeft(questions[qIndex].answer_time_limit || 60);
+          const limit = questions[qIndex].answer_time_limit || 60;
+          setTimeLeft(limit);
+          setInitialTimeLimit(limit);
           
           setIsSelfIntro(questions[qIndex].id === 'self-intro');
           const offset = questions[0]?.id === 'self-intro' ? 0 : 1;
@@ -77,6 +82,7 @@ export default function Recording() {
 
   const handleStop = () => {
     stopRecording();
+    stopCamera();
   };
 
   const uploadVideo = async (blob) => {
@@ -91,11 +97,12 @@ export default function Recording() {
     const metrics = postureState.getAggregatedMetrics ? postureState.getAggregatedMetrics() : {};
     
     const formData = new FormData();
-    formData.append('video', blob, `answer_${index}.webm`);
+    formData.append('video', blob, `answer_${index}.mp4`);
     formData.append('questionId', questionId);
-    formData.append('durationSec', 60 - timeLeft);
+    formData.append('durationSec', initialTimeLimit - timeLeft);
     formData.append('hasSpoken', hasSpoken);
     formData.append('behavioralMetrics', JSON.stringify(metrics));
+    formData.append('frontendTranscript', transcript);
 
     try {
       const res = await api.post(`/ai-interviews/attempts/${attemptId}/answers`, formData, {
@@ -152,6 +159,35 @@ export default function Recording() {
           </div>
         )}
       </div>
+      
+      {/* Live Speech Transcription Box */}
+      {isRecording && !uploading && (
+        <div className="w-full max-w-4xl mt-6 flex flex-col gap-3">
+          <div className="flex items-center gap-2 px-1">
+            <div className="recording-dot" style={{ width: '8px', height: '8px', backgroundColor: 'var(--success)' }}></div>
+            <label className="text-sm text-secondary font-medium tracking-wide uppercase">Live Transcription</label>
+          </div>
+          <div className="glass-panel" style={{ padding: '2px', background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(20, 21, 24, 0.7) 100%)' }}>
+            <textarea
+              className="w-full p-5 rounded-xl resize-none"
+              style={{ 
+                background: 'var(--bg-secondary)', 
+                border: 'none', 
+                minHeight: '140px',
+                outline: 'none',
+                cursor: 'default',
+                fontSize: '1.05rem',
+                lineHeight: '1.6',
+                fontFamily: "'Inter', sans-serif",
+                boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.2)',
+                color: '#ffffff'
+              }}
+              value={transcript || "Listening..."}
+              readOnly
+            />
+          </div>
+        </div>
+      )}
 
       <button 
         className="btn btn-danger mt-8" 

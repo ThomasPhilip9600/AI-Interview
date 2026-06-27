@@ -43,6 +43,19 @@ export default function Report() {
   const stats = report.attempt;
   const answer = report.answers[0]; // For MVP, show first answer
 
+  // Get all unique warnings from all answers
+  const allWarnings = Array.from(new Set(
+    report.answers.flatMap(ans => {
+      if (!ans.behavioral_metrics_json) return [];
+      try {
+        const parsed = typeof ans.behavioral_metrics_json === 'string' 
+          ? JSON.parse(ans.behavioral_metrics_json) 
+          : ans.behavioral_metrics_json;
+        return parsed.warnings || [];
+      } catch(e) { return []; }
+    })
+  ));
+
   return (
     <div className="animate-fade-in flex flex-col gap-6">
       <div className="flex justify-between items-end mb-4">
@@ -75,16 +88,36 @@ export default function Report() {
             <div className="progress-bg"><div className="progress-fill" style={{ width: `${stats.body_language_score}%`, background: '#10b981' }}></div></div>
           </div>
         </div>
+        <div className="card flex flex-col gap-4" style={{ borderTop: '4px solid var(--danger)' }}>
+          <h3 className="text-sm text-secondary uppercase mb-2">Behavioral Warnings</h3>
+          {allWarnings.length > 0 ? (
+            <ul className="text-sm text-danger pl-4" style={{ listStyleType: 'disc' }}>
+              {allWarnings.map((w, i) => <li key={i}>{w}</li>)}
+            </ul>
+          ) : (
+            <div className="text-success text-sm flex items-center gap-2">
+              <CheckCircle size={16} /> No posture or behavioral issues detected!
+            </div>
+          )}
+        </div>
       </div>
 
       <h3 className="text-xl mt-4 border-b pb-2" style={{ borderColor: 'var(--border-color)' }}>Question Breakdown</h3>
       
-      {report.answers.map((ans, idx) => (
-        <div key={ans.id} className="card flex flex-col gap-6">
-          <div>
-            <h4 className="text-secondary text-sm mb-1">Question {idx + 1}</h4>
-            <p className="text-lg">{ans.question_text}</p>
-          </div>
+      {report.answers.map((ans, idx) => {
+        const isSelfIntro = !ans.question_id || ans.order_index === -1 || ans.question_text === "Please take a moment to introduce yourself.";
+        // Determine the offset based on if the first question is a self-intro
+        const hasSelfIntroAtStart = report.answers[0] && (!report.answers[0].question_id || report.answers[0].order_index === -1 || report.answers[0].question_text === "Please take a moment to introduce yourself.");
+        const displayNumber = idx + (hasSelfIntroAtStart ? 0 : 1);
+
+        return (
+          <div key={ans.id} className="card flex flex-col gap-6">
+            <div>
+              <h4 className="text-secondary text-sm mb-1">
+                {isSelfIntro ? 'Self Introduction' : `Question ${displayNumber}`}
+              </h4>
+              <p className="text-lg">{ans.question_text}</p>
+            </div>
 
           <div className="flex gap-6">
             <div style={{ flex: 2 }} className="flex flex-col gap-4">
@@ -163,7 +196,8 @@ export default function Report() {
             </div>
           </div>
         </div>
-      ))}
+      );
+    })}
     </div>
   );
 }

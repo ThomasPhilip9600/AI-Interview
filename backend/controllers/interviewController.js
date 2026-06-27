@@ -99,13 +99,12 @@ exports.getAttemptDetails = async (req, res) => {
   }
 };
 
-exports.uploadAnswer = async (req, res) => {
+  exports.uploadAnswer = async (req, res) => {
   try {
     const { attemptId } = req.params;
-    const { questionId, durationSec, hasSpoken, behavioralMetrics } = req.body;
+    const { questionId, durationSec, hasSpoken, behavioralMetrics, frontendTranscript } = req.body;
     
-    // If the client detected no audio volume/speech, treat the answer as 0 seconds long.
-    const effectiveDuration = hasSpoken === 'false' ? 0 : parseInt(durationSec, 10);
+    const effectiveDuration = parseInt(durationSec, 10);
     
     if (!req.file) {
       return res.status(400).json({ error: "No video file provided" });
@@ -124,9 +123,9 @@ exports.uploadAnswer = async (req, res) => {
     const dbQuestionId = questionId === 'self-intro' ? null : questionId;
 
     await db.query(
-      `INSERT INTO interview_answers (id, attempt_id, question_id, video_url, duration_sec, processing_status, behavioral_metrics_json) 
-       VALUES (?, ?, ?, ?, ?, 'UPLOADED', ?)`,
-      [answerId, attemptId, dbQuestionId, objectKey, effectiveDuration, behavioralMetrics || null]
+      `INSERT INTO interview_answers (id, attempt_id, question_id, video_url, duration_sec, processing_status, behavioral_metrics_json, transcript) 
+       VALUES (?, ?, ?, ?, ?, 'UPLOADED', ?, ?)`,
+      [answerId, attemptId, dbQuestionId, objectKey, effectiveDuration, behavioralMetrics || null, frontendTranscript || null]
     );
 
     res.json({ success: true, answerId, objectKey });
@@ -160,7 +159,8 @@ exports.evaluateAnswerProcess = async (req, res) => {
       answer.duration_sec, 
       questionText, 
       rubric, 
-      answer.behavioral_metrics_json
+      answer.behavioral_metrics_json,
+      answer.transcript
     );
 
     // Save Transcript

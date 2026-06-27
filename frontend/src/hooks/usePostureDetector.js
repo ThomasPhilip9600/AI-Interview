@@ -24,7 +24,8 @@ export default function usePostureDetector(videoRef) {
     headPitchValues: [],
     headYawValues: [],
     headRollValues: [],
-    shoulderAlignmentValues: []
+    shoulderAlignmentValues: [],
+    warnings: new Set()
   });
 
   // Initialize the model
@@ -122,7 +123,8 @@ export default function usePostureDetector(videoRef) {
       eyeContactPercentage,
       faceCenteredPercentage,
       headStability: Math.round(headStability * 10) / 10,
-      shoulderAlignment: Math.round(shoulderAlignment * 10) / 10
+      shoulderAlignment: Math.round(shoulderAlignment * 10) / 10,
+      warnings: Array.from(m.warnings)
     };
   }, []);
 
@@ -248,6 +250,9 @@ export default function usePostureDetector(videoRef) {
       }
 
       setDetectorState(prev => {
+        if (errorMessage) {
+          metricsRef.current.warnings.add(errorMessage);
+        }
         const isValid = faceCount === 1 && isCentered && isProperDistance && !errorMessage;
         if (
           prev.faceCount !== faceCount ||
