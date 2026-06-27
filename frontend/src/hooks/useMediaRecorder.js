@@ -2,6 +2,18 @@ import { useState, useEffect, useRef } from 'react';
 
 export default function useMediaRecorder() {
   const [mediaStream, setMediaStream] = useState(null);
+  const streamRef = useRef(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState(null);
@@ -12,7 +24,15 @@ export default function useMediaRecorder() {
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      if (!isMountedRef.current) {
+        stream.getTracks().forEach(track => track.stop());
+        return null;
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
       setMediaStream(stream);
+      streamRef.current = stream;
       setError('');
       return stream;
     } catch (err) {
@@ -23,8 +43,11 @@ export default function useMediaRecorder() {
   };
 
   const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
     if (mediaStream) {
-      mediaStream.getTracks().forEach(track => track.stop());
       setMediaStream(null);
     }
   };

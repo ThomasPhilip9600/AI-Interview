@@ -56,7 +56,7 @@ async function transcribeAudio(audioUrl, durationSec) {
 async function evaluateAnswer(questionText, rubric, transcript, durationSec) {
   console.log(`[AI] Evaluating answer...`);
   
-  if (durationSec < 3) {
+  if (durationSec < 3 || transcript.includes("[Transcription failed") || transcript.includes("[Recording too short") || transcript.trim().length < 5) {
     return {
       overall_score: 0,
       relevance_score: 0,

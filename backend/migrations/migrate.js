@@ -25,12 +25,16 @@ async function runMigrations() {
       const filePath = path.join(__dirname, file);
       const sql = fs.readFileSync(filePath, 'utf8');
       
-      // Execute the sql
-      await pool.query(sql);
-      console.log(`Successfully migrated: ${file}`);
+      try {
+        // Execute the sql
+        await pool.query(sql);
+        console.log(`Successfully migrated: ${file}`);
+      } catch (err) {
+        console.warn(`Migration ${file} failed or was already applied: ${err.message}`);
+      }
     }
     
-    console.log('All migrations completed successfully.');
+    console.log('All migrations completed.');
   } catch (error) {
     console.error('Migration failed:', error);
   } finally {

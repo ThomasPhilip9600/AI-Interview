@@ -8,6 +8,8 @@ export default function QuestionDisplay() {
   const navigate = useNavigate();
   const [prepTime, setPrepTime] = useState(10);
   const [questionText, setQuestionText] = useState('Loading question...');
+  const [isSelfIntro, setIsSelfIntro] = useState(false);
+  const [displayNumber, setDisplayNumber] = useState(1);
   
   useEffect(() => {
     // Fetch actual questions for the attempt
@@ -18,6 +20,10 @@ export default function QuestionDisplay() {
         if (questions && questions.length > qIndex) {
           setQuestionText(questions[qIndex].question_text);
           setPrepTime(questions[qIndex].preparation_time || 10);
+          
+          setIsSelfIntro(questions[qIndex].id === 'self-intro');
+          const offset = questions[0]?.id === 'self-intro' ? 0 : 1;
+          setDisplayNumber(parseInt(index) + offset);
         } else {
           setQuestionText("No more questions.");
           setPrepTime(0);
@@ -44,7 +50,9 @@ export default function QuestionDisplay() {
   return (
     <div className="animate-fade-in flex flex-col items-center justify-center" style={{ minHeight: '60vh' }}>
       <div className="text-center mb-8">
-        <h3 className="text-secondary mb-2 uppercase tracking-widest text-sm">Question {parseInt(index) + 1}</h3>
+        <h3 className="text-secondary mb-2 uppercase tracking-widest text-sm">
+          {isSelfIntro ? 'Self Introduction' : `Question ${displayNumber}`}
+        </h3>
         <h2 className="text-2xl max-w-2xl" style={{ lineHeight: 1.6 }}>{questionText}</h2>
       </div>
 

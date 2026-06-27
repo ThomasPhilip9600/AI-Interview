@@ -10,6 +10,7 @@ export default function InterviewDetails() {
   const [loading, setLoading] = useState(true);
 
   const [difficulty, setDifficulty] = useState('Beginner');
+  const [selfIntroDuration, setSelfIntroDuration] = useState('2');
 
   useEffect(() => {
     api.get(`/ai-interviews/templates/${id}`)
@@ -26,7 +27,10 @@ export default function InterviewDetails() {
 
   const startInterview = async () => {
     try {
-      const res = await api.post(`/ai-interviews/${id}/start`, { difficulty });
+      const res = await api.post(`/ai-interviews/${id}/start`, { 
+        difficulty,
+        selfIntroDuration: parseInt(selfIntroDuration, 10)
+      });
       const { attemptId } = res.data;
       navigate(`/interview/${attemptId}/setup`);
     } catch (err) {
@@ -53,7 +57,7 @@ export default function InterviewDetails() {
           </div>
         </div>
 
-        <div className="mb-8">
+        <div className="mb-4">
           <label className="text-sm text-secondary block mb-2">Select Your Difficulty Level:</label>
           <select 
             className="w-full p-3 rounded" 
@@ -64,6 +68,20 @@ export default function InterviewDetails() {
             <option value="Beginner">Beginner</option>
             <option value="Intermediate">Intermediate</option>
             <option value="Advanced">Advanced</option>
+          </select>
+        </div>
+
+        <div className="mb-8">
+          <label className="text-sm text-secondary block mb-2">Self Introduction Duration:</label>
+          <select 
+            className="w-full p-3 rounded" 
+            style={{ background: 'var(--bg-tertiary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+            value={selfIntroDuration} 
+            onChange={(e) => setSelfIntroDuration(e.target.value)}
+          >
+            <option value="2">2 Minutes</option>
+            <option value="3">3 Minutes</option>
+            <option value="5">5 Minutes</option>
           </select>
         </div>
 

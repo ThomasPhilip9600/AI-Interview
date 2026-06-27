@@ -43,7 +43,7 @@ exports.startInterview = async (req, res) => {
   try {
     const userId = getUserId(req);
     const templateId = req.params.templateId;
-    const { difficulty = 'Beginner' } = req.body;
+    const { difficulty = 'Beginner', selfIntroDuration = 0 } = req.body;
 
     // Entitlement check removed as requested by user
     // const accessCheck = await entitlementService.canStartInterview(userId);
@@ -56,8 +56,8 @@ exports.startInterview = async (req, res) => {
     const attemptId = uuidv4();
     
     await db.query(
-      "INSERT INTO interview_attempts (id, user_id, template_id, status, difficulty) VALUES (?, ?, ?, 'IN_PROGRESS', ?)",
-      [attemptId, userId, templateId, difficulty]
+      "INSERT INTO interview_attempts (id, user_id, template_id, status, difficulty, self_intro_duration) VALUES (?, ?, ?, 'IN_PROGRESS', ?, ?)",
+      [attemptId, userId, templateId, difficulty, selfIntroDuration]
     );
 
     res.json({ success: true, attemptId });
@@ -77,9 +77,21 @@ exports.getAttemptDetails = async (req, res) => {
     
     const attempt = attempts[0];
     const [questions] = await db.query(
-      "SELECT * FROM interview_questions WHERE template_id = ? AND difficulty = ? ORDER BY order_index ASC", 
-      [attempt.template_id, attempt.difficulty || 'Beginner']
+      "SELECT * FROM interview_questions WHERE template_id = ? ORDER BY order_index ASC", 
+      [attempt.template_id]
     );
+    
+    if (attempt.self_intro_duration && attempt.self_intro_duration > 0) {
+      questions.unshift({
+        id: 'self-intro',
+        template_id: attempt.template_id,
+        question_text: "Please take a moment to introduce yourself.",
+        ideal_answer: "A good self-introduction should highlight your background, relevant skills, and why you are a fit for this role.",
+        preparation_time: 10,
+        answer_time_limit: attempt.self_intro_duration * 60,
+        order_index: -1
+      });
+    }
     
     res.json({ attempt, questions });
   } catch (err) {
@@ -90,7 +102,7 @@ exports.getAttemptDetails = async (req, res) => {
 exports.uploadAnswer = async (req, res) => {
   try {
     const { attemptId } = req.params;
-    const { questionId, durationSec, hasSpoken } = req.body;
+    const { questionId, durationSec, hasSpoken, behavioralMetrics } = req.body;
     
     // If the client detected no audio volume/speech, treat the answer as 0 seconds long.
     const effectiveDuration = hasSpoken === 'false' ? 0 : parseInt(durationSec, 10);
@@ -109,10 +121,12 @@ exports.uploadAnswer = async (req, res) => {
     const { v4: uuidv4 } = require('uuid');
     const answerId = uuidv4();
 
+    const dbQuestionId = questionId === 'self-intro' ? null : questionId;
+
     await db.query(
-      `INSERT INTO interview_answers (id, attempt_id, question_id, video_url, duration_sec, processing_status) 
-       VALUES (?, ?, ?, ?, ?, 'UPLOADED')`,
-      [answerId, attemptId, questionId, objectKey, effectiveDuration]
+      `INSERT INTO interview_answers (id, attempt_id, question_id, video_url, duration_sec, processing_status, behavioral_metrics_json) 
+       VALUES (?, ?, ?, ?, ?, 'UPLOADED', ?)`,
+      [answerId, attemptId, dbQuestionId, objectKey, effectiveDuration, behavioralMetrics || null]
     );
 
     res.json({ success: true, answerId, objectKey });
@@ -127,25 +141,30 @@ exports.evaluateAnswerProcess = async (req, res) => {
     
     // 1. Fetch answer & question details
     const [answers] = await db.query(
-      "SELECT a.*, q.question_text, q.ideal_answer, q.scoring_rubric FROM interview_answers a JOIN interview_questions q ON a.question_id = q.id WHERE a.id = ?",
+      "SELECT a.*, q.question_text, q.ideal_answer, q.scoring_rubric FROM interview_answers a LEFT JOIN interview_questions q ON a.question_id = q.id WHERE a.id = ?",
       [answerId]
     );
     if (answers.length === 0) return res.status(404).json({ error: "Answer not found" });
     const answer = answers[0];
 
-    // 2. Transcribe (Stub)
-    await db.query("UPDATE interview_answers SET processing_status = 'TRANSCRIBING' WHERE id = ?", [answerId]);
-    const transcript = await aiService.transcribeAudio(answer.video_url, answer.duration_sec);
-    await db.query("UPDATE interview_answers SET transcript = ?, processing_status = 'TRANSCRIBED' WHERE id = ?", [transcript, answerId]);
-
-    // 3. Evaluate AI, Speech, Posture in parallel (Stubs)
+    // 2. Delegate to Scoring Service
     await db.query("UPDATE interview_answers SET processing_status = 'EVALUATING' WHERE id = ?", [answerId]);
     
-    const [evalResult, speechResult, postureResult] = await Promise.all([
-      aiService.evaluateAnswer(answer.question_text, answer.ideal_answer, transcript, answer.duration_sec),
-      aiService.analyzeSpeech(transcript, answer.duration_sec),
-      aiService.analyzePosture(answer.video_url, answer.duration_sec)
-    ]);
+    const scoringService = require('../services/scoringService');
+
+    const questionText = answer.question_text || "Please take a moment to introduce yourself.";
+    const rubric = answer.ideal_answer || answer.scoring_rubric || "A concise overview of background and skills, demonstrating strong communication.";
+
+    const { transcript, evalResult, speechResult, postureResult } = await scoringService.processAnswerPipeline(
+      answer.video_url, 
+      answer.duration_sec, 
+      questionText, 
+      rubric, 
+      answer.behavioral_metrics_json
+    );
+
+    // Save Transcript
+    await db.query("UPDATE interview_answers SET transcript = ? WHERE id = ?", [transcript, answerId]);
 
     const { v4: uuidv4 } = require('uuid');
 
@@ -259,9 +278,17 @@ exports.getAttemptReport = async (req, res) => {
     const attempt = attempts[0];
 
     const [answers] = await db.query(
-      "SELECT a.*, q.question_text, q.order_index FROM interview_answers a JOIN interview_questions q ON a.question_id = q.id WHERE a.attempt_id = ? AND a.is_deleted = FALSE ORDER BY q.order_index ASC", 
+      "SELECT a.*, q.question_text, q.order_index FROM interview_answers a LEFT JOIN interview_questions q ON a.question_id = q.id WHERE a.attempt_id = ? AND a.is_deleted = FALSE ORDER BY COALESCE(q.order_index, -1) ASC", 
       [attemptId]
     );
+
+    // Provide default text for self-intro
+    answers.forEach(a => {
+      if (!a.question_id) {
+        a.question_text = "Please take a moment to introduce yourself.";
+        a.order_index = -1;
+      }
+    });
 
     // Resolve presigned URLs for playback and attach evaluations
     for (let answer of answers) {
