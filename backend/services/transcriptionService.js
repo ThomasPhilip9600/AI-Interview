@@ -32,7 +32,11 @@ async function transcribeAudio(objectKey, durationSec) {
     const transcription = await groq.audio.transcriptions.create({
       file: fs.createReadStream(tempFilePath),
       model: "whisper-large-v3",
-      response_format: "verbose_json", 
+      response_format: "verbose_json",
+      language: "en",
+      // This prompt primes Whisper to preserve filler words in the transcript
+      // instead of silently removing them. Critical for accurate speech analysis.
+      prompt: "Transcribe exactly what is spoken, including all filler words and hesitations such as um, uh, umm, ah, hmm, like, you know, basically, actually, so, and repeated words.",
     });
     
     fs.unlinkSync(tempFilePath);

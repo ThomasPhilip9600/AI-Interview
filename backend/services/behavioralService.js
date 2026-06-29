@@ -16,7 +16,9 @@ async function analyzeBehavior(transcript, durationSec, frontendMetricsJson) {
   
   try {
     if (frontendMetricsJson) {
-      frontendMetrics = JSON.parse(frontendMetricsJson);
+      frontendMetrics = typeof frontendMetricsJson === 'string'
+        ? JSON.parse(frontendMetricsJson)
+        : frontendMetricsJson;
     }
   } catch (e) {
     console.error("[Behavioral] Failed to parse frontend metrics:", e);

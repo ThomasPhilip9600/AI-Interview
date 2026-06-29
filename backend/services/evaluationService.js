@@ -66,7 +66,7 @@ You MUST return a JSON object with this exact structure (and no other text or ma
           content: prompt
         }
       ],
-      model: "llama-3.1-70b-versatile",
+      model: "llama-3.3-70b-versatile",
       temperature: 0.2,
       response_format: { type: "json_object" }
     });

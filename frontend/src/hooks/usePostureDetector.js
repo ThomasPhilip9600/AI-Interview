@@ -15,6 +15,7 @@ export default function usePostureDetector(videoRef) {
   const poseLandmarkerRef = useRef(null);
   const requestRef = useRef(null);
   const lastVideoTimeRef = useRef(-1);
+  const lookAwayCountRef = useRef(0);
 
   // Metrics accumulators for behavioral analytics
   const metricsRef = useRef({
@@ -199,16 +200,34 @@ export default function usePostureDetector(videoRef) {
           const eyeLookUpLeft = shapes.find(s => s.categoryName === 'eyeLookUpLeft')?.score || 0;
           const eyeLookDownLeft = shapes.find(s => s.categoryName === 'eyeLookDownLeft')?.score || 0;
           
-          if (eyeLookOutLeft > 0.4 || eyeLookInRight > 0.4 || eyeLookOutRight > 0.4 || eyeLookInLeft > 0.4 || eyeLookUpLeft > 0.5 || eyeLookDownLeft > 0.5) {
-             isLookingAtScreen = false;
+          const eyeBlinkLeft = shapes.find(s => s.categoryName === 'eyeBlinkLeft')?.score || 0;
+          const eyeBlinkRight = shapes.find(s => s.categoryName === 'eyeBlinkRight')?.score || 0;
+
+          // If the user is blinking, override and assume they are looking at the screen.
+          // This avoids false warnings during normal blinks.
+          if (eyeBlinkLeft > 0.4 || eyeBlinkRight > 0.4) {
+            isLookingAtScreen = true;
           } else {
-             metricsRef.current.eyeContactFrames++;
+            // Relaxed thresholds (0.55 for horizontal and 0.65 for vertical/diagonal movements)
+            // to allow normal eyes scanning across the screen layout.
+            if (eyeLookOutLeft > 0.55 || eyeLookInRight > 0.55 || eyeLookOutRight > 0.55 || eyeLookInLeft > 0.55 || eyeLookUpLeft > 0.65 || eyeLookDownLeft > 0.65) {
+               isLookingAtScreen = false;
+            }
           }
-        } else {
-             metricsRef.current.eyeContactFrames++;
         }
 
-        if (isCentered && isProperDistance && !isLookingAtScreen && !errorMessage) {
+        // Apply temporal dampening/smoothing to avoid false positives (e.g. blinks or quick reading glance)
+        if (!isLookingAtScreen) {
+          lookAwayCountRef.current++;
+        } else {
+          lookAwayCountRef.current = 0;
+          metricsRef.current.eyeContactFrames++;
+        }
+
+        // Only count as look-away and show warning if consecutive frames exceed ~30 (about 1 second of looking away)
+        const hasLookedAwayTooLong = lookAwayCountRef.current > 30;
+
+        if (isCentered && isProperDistance && hasLookedAwayTooLong && !errorMessage) {
           errorMessage = 'Please maintain eye contact with the screen.';
         }
 

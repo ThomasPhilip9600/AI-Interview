@@ -77,8 +77,8 @@ exports.getAttemptDetails = async (req, res) => {
     
     const attempt = attempts[0];
     const [questions] = await db.query(
-      "SELECT * FROM interview_questions WHERE template_id = ? ORDER BY order_index ASC", 
-      [attempt.template_id]
+      "SELECT * FROM interview_questions WHERE template_id = ? AND difficulty = ? ORDER BY order_index ASC", 
+      [attempt.template_id, attempt.difficulty]
     );
     
     if (attempt.self_intro_duration && attempt.self_intro_duration > 0) {

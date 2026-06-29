@@ -142,11 +142,20 @@ export default function Recording() {
         {mediaStream && <video ref={videoRef} autoPlay muted playsInline />}
         
         {postureState.errorMessage && !uploading && postureState.ready && (
-          <div className="camera-overlay justify-center items-center p-4 text-center" style={{ background: 'rgba(255, 40, 40, 0.85)', color: 'white', borderRadius: 0, zIndex: 10, backdropFilter: 'blur(4px)' }}>
-            <AlertTriangle size={48} className="mb-2" />
-            <h3 className="text-2xl font-bold mb-2">Posture Warning!</h3>
-            <p className="text-xl">{postureState.errorMessage}</p>
-            <p className="text-md mt-4 opacity-90">Please correct this immediately. Your AI evaluation may be penalized.</p>
+          <div className="camera-overlay" style={{ pointerEvents: 'none', zIndex: 10, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100%', padding: '1.5rem', boxSizing: 'border-box' }}>
+            {/* Top Warning (Gaze/Eye Contact) - Floating Orange Badge */}
+            {postureState.errorMessage.toLowerCase().includes('contact') || postureState.errorMessage.toLowerCase().includes('eye') ? (
+              <div className="flex items-center gap-2 px-4 py-2.5 mx-auto rounded-xl shadow-lg animate-fade-in" style={{ background: '#f97316', border: '1px solid #ea580c', color: 'white', fontWeight: 600, fontSize: '0.9rem', pointerEvents: 'auto' }}>
+                <AlertTriangle size={16} /> Last warning! Keep eyes on screen.
+              </div>
+            ) : <div />}
+
+            {/* Bottom Warning (Alignment/Centering/Shoulders) - Floating Dark Badge */}
+            {!(postureState.errorMessage.toLowerCase().includes('contact') || postureState.errorMessage.toLowerCase().includes('eye')) ? (
+              <div className="flex items-center gap-2 px-4 py-2.5 mx-auto rounded-xl shadow-lg animate-fade-in" style={{ background: 'rgba(20, 21, 24, 0.85)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', fontWeight: 600, fontSize: '0.9rem', pointerEvents: 'auto', backdropFilter: 'blur(4px)' }}>
+                <span role="img" aria-label="camera">📷</span> {postureState.errorMessage}
+              </div>
+            ) : <div />}
           </div>
         )}
         
@@ -160,34 +169,7 @@ export default function Recording() {
         )}
       </div>
       
-      {/* Live Speech Transcription Box */}
-      {isRecording && !uploading && (
-        <div className="w-full max-w-4xl mt-6 flex flex-col gap-3">
-          <div className="flex items-center gap-2 px-1">
-            <div className="recording-dot" style={{ width: '8px', height: '8px', backgroundColor: 'var(--success)' }}></div>
-            <label className="text-sm text-secondary font-medium tracking-wide uppercase">Live Transcription</label>
-          </div>
-          <div className="glass-panel" style={{ padding: '2px', background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(20, 21, 24, 0.7) 100%)' }}>
-            <textarea
-              className="w-full p-5 rounded-xl resize-none"
-              style={{ 
-                background: 'var(--bg-secondary)', 
-                border: 'none', 
-                minHeight: '140px',
-                outline: 'none',
-                cursor: 'default',
-                fontSize: '1.05rem',
-                lineHeight: '1.6',
-                fontFamily: "'Inter', sans-serif",
-                boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.2)',
-                color: '#ffffff'
-              }}
-              value={transcript || "Listening..."}
-              readOnly
-            />
-          </div>
-        </div>
-      )}
+
 
       <button 
         className="btn btn-danger mt-8" 
